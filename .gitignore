@@ -1,0 +1,27 @@
+# Node.js
+node_modules/
+dist/
+.env
+npm-debug.log*
+
+# Go
+/bin/
+/obj/
+/vendor/
+*.exe
+*.log
+
+# Python (if you have any Python code here, otherwise in scrapers repo)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+.Python
+
+# General
+.DS_Store
+.idea/
+.vscode/
+*.swp

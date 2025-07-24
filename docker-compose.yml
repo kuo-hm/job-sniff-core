@@ -1,0 +1,114 @@
+services:
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./api-gateway/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./api-gateway:/app
+      - /app/node_modules
+    networks:
+      - job-sniff-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  user-service:
+    build: ./user-service
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./user-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./user-service:/app
+      - /app/node_modules
+    networks:
+      - job-sniff-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  scraper-manager:
+    build: ./scraper-manager
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./scraper-manager/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      result-service:
+        condition: service_started
+    networks:
+      - job-sniff-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  result-service:
+    build: ./result-service
+    ports:
+      - "6000:6000"
+    env_file:
+      - ./result-service/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - job-sniff-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  notification-service:
+    build: ./notification-service
+    env_file:
+      - ./notification-service/.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - job-sniff-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  job-scheduler:
+    build: ./job-scheduler
+    env_file:
+      - ./job-scheduler/.env
+    depends_on:
+      scraper-manager:
+        condition: service_healthy
+    networks:
+      - job-sniff-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
