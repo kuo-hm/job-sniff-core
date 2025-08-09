@@ -1,7 +1,6 @@
-// login.service.ts
 import { status } from '@grpc/grpc-js';
-import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
-import { ClientGrpc, RpcException } from '@nestjs/microservices';
+import { BadRequestException, Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { ClientGrpc } from '@nestjs/microservices';
 import { catchError, firstValueFrom, Observable } from 'rxjs';
 import { GRPC_SERVICE_NAMES } from 'src/common/constants/grpc.constants';
 
@@ -9,29 +8,33 @@ import { GRPC_SERVICE_NAMES } from 'src/common/constants/grpc.constants';
 export class LoginService implements OnModuleInit {
   private userService: UserServiceClient;
 
-  constructor(
-    @Inject(GRPC_SERVICE_NAMES.USER) private readonly client: ClientGrpc,
-  ) {}
+  constructor(@Inject(GRPC_SERVICE_NAMES.USER) private readonly client: ClientGrpc) {}
 
   onModuleInit() {
     this.userService = this.client.getService<UserServiceClient>('UserService');
   }
 
   async execute(payload: Payload): Promise<Response> {
-    return await firstValueFrom(
+    const res = await firstValueFrom(
       this.userService.login(payload).pipe(
         catchError((err) => {
           switch (err.code) {
             case status.NOT_FOUND:
-              throw new RpcException('User not found');
+              throw new BadRequestException('Bad credentials');
             case status.UNAUTHENTICATED:
-              throw new RpcException('Unauthorized access');
+              throw new BadRequestException(err.details || 'Authentication failed');
+            case status.INVALID_ARGUMENT:
+              throw new BadRequestException(err.details || 'Invalid arguments provided');
             default:
-              throw new RpcException('Internal server error');
+              throw new BadRequestException('Internal server error');
           }
         }),
       ),
     );
+    if (!res) {
+      throw new BadRequestException('Login failed');
+    }
+    return res;
   }
 }
 

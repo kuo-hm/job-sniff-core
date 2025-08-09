@@ -1,0 +1,4 @@
+export const GRPC_SERVICE_NAMES = {
+  USER: 'USER_PACKAGE',
+  SCRAPER: 'SCRAPER_PACKAGE',
+} as const;
